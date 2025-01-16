@@ -137,44 +137,161 @@ except Nexilum_error as e:
 ### Class-Based Implementation
 
 ```python
+from http import HTTPMethod
+from nexilum import connect_to
+
 @connect_to(
-    base_url="https://api.example.com",
+    base_url="https://jsonplaceholder.typicode.com", 
     headers={"Content-Type": "application/json"}
 )
-class APIClient:
-    @login
-    def authenticate(self, credentials):
+class JSONPlaceholder:
+    def get_posts(self, method=HTTPMethod.GET, endpoint="posts", **data):
         pass
 
-    @auth
-    def get_resource(self, resource_id):
+    def get_post(self, method=HTTPMethod.GET, endpoint="posts/{post_id}", **data):
         pass
 
-    @logout
-    def end_session(self):
+    def get_post_comments(self, method=HTTPMethod.GET, endpoint="posts/{post_id}/comments", **data):
         pass
+
+    def create_post(self, method=HTTPMethod.POST, endpoint="posts", **data):
+        pass
+
+    def update_post(self, method=HTTPMethod.PUT, endpoint="posts/{post_id}", **data):
+        pass
+
+    def delete_post(self, method=HTTPMethod.DELETE, endpoint="posts/{post_id}", **data):
+        pass
+
+    def get_users(self, method=HTTPMethod.GET, endpoint="users", **data):
+        pass
+
+    def get_user(self, endpoint:str, method=HTTPMethod.GET, **data):
+        pass
+
+    def get_user_posts(self, method=HTTPMethod.GET, endpoint="users/{user_id}/posts", **data):
+        pass
+
+    def get_user_todos(self, method=HTTPMethod.GET, endpoint="users/{user_id}/todos", **data):
+        pass
+```
+
+Example usage with decorators:
+
+```python
+# Initialize client
+api = JSONPlaceholder()
+
+# Get all posts
+posts = api.get_posts()
+
+# Get specific post
+post = api.get_post(endpoint="posts/1")
+
+# Create new post
+new_post = api.create_post(data={
+    "title": "foo",
+    "body": "bar",
+    "userId": 1
+})
+
+# Update post
+updated_post = api.update_post(
+    endpoint="posts/1",
+    data={
+        "id": 1,
+        "title": "foo updated",
+        "body": "bar updated",
+        "userId": 1
+    }
+)
+
+# Delete post
+deleted = api.delete_post(endpoint="posts/1")
+
+# Get users
+users = api.get_users()
+
+# Get specific user
+user = api.get_user(endpoint="users/1")
 ```
 
 ### Direct Usage
 
 ```python
-with Nexilum(base_url="https://api.example.com") as client:
-    # GET request
-    users = client.request(
+from http import HTTPMethod
+from nexilum import Nexilum
+
+# Initialize the Nexilum instance
+api = Nexilum(
+    base_url="https://jsonplaceholder.typicode.com",
+    headers={"Content-Type": "application/json"}
+)
+
+# Using the context manager for safe resource handling
+with api as client:
+    # Get all posts
+    posts = client.request(
         method=HTTPMethod.GET,
-        endpoint="users",
-        params={"page": 1}
+        endpoint="posts"
     )
 
-    # POST request
-    new_user = client.request(
+    # Get specific post
+    post = client.request(
+        method=HTTPMethod.GET,
+        endpoint="posts/1"
+    )
+
+    # Create new post
+    new_post = client.request(
         method=HTTPMethod.POST,
-        endpoint="users",
+        endpoint="posts",
         data={
-            "name": "John Doe",
-            "email": "john@example.com"
+            "title": "foo",
+            "body": "bar",
+            "userId": 1
         }
     )
+
+    # Update post
+    updated_post = client.request(
+        method=HTTPMethod.PUT,
+        endpoint="posts/1",
+        data={
+            "id": 1,
+            "title": "foo updated",
+            "body": "bar updated",
+            "userId": 1
+        }
+    )
+
+    # Delete post
+    deleted = client.request(
+        method=HTTPMethod.DELETE,
+        endpoint="posts/1"
+    )
+
+    # Get users
+    users = client.request(
+        method=HTTPMethod.GET,
+        endpoint="users"
+    )
+
+    # Get specific user
+    user = client.request(
+        method=HTTPMethod.GET,
+        endpoint="users/1"
+    )
+
+# Example with error handling
+try:
+    with Nexilum(base_url="https://jsonplaceholder.typicode.com") as client:
+        response = client.request(
+            method=HTTPMethod.GET,
+            endpoint="nonexistent"
+        )
+except Nexilum_error as e:
+    print(f"Error occurred: {e}")
 ```
 
 ## 📚 API Documentation
