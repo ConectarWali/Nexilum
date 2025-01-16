@@ -1,316 +1,268 @@
-# HTTP Nexilum Library Documentation
+# 🌐 Nexilum Library Documentation
+
+[![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 A Python library for simplifying HTTP integrations with REST APIs, featuring decorators for authentication handling and request management.
 
 ## Table of Contents
 
-- [Features](#features)
-- [Installation](#installation)
-- [Components](#components)
-- [Usage](#usage)
-- [Example Implementation](#example-implementation)
-  - [Using Decorators](#using-decorators)
-  - [Using Integration Class Directly](#using-integration-class-directly)
-- [API Documentation](#api-documentation)
+- [🚀 Features](#-features)
+- [📦 Installation](#-installation)
+- [🔧 Components](#-components)
+- [📘 Usage](#-usage)
+- [💻 Example Implementation](#-example-implementation)
+- [📚 API Documentation](#-api-documentation)
+- [⚡ Best Practices](#-best-practices)
 
-## Features
+## 🚀 Features
 
-- Decorator-based HTTP integration setup
-- Automatic authentication management
-- Request retry mechanism for server errors
-- SSL verification support
-- Flexible header and parameter management
-- Context manager support
+- ✨ Decorator-based HTTP integration setup
+- 🔐 Automatic authentication management
+- 🔄 Request retry mechanism for server errors (up to 3 retries)
+- 🛡️ SSL verification support
+- 📝 Flexible header and parameter management
+- ⚡ Context manager support
+- 🔍 Comprehensive error handling
 
-## Installation
+## 📦 Installation
 
 ```bash
-pip install integration
+pip install nexilum
 ```
 
-## Components
+## 🔧 Components
 
-### Integration Class
+### Nexilum Class
 
-The core class handling HTTP requests and responses.
+The core class handling HTTP requests and responses:
+
+```python
+from nexilum import Nexilum
+
+client = Nexilum(
+    base_url="https://api.example.com",
+    headers={"Content-Type": "application/json"},
+    timeout=30,
+    verify_ssl=True
+)
+```
 
 #### Key Features:
 
-- Configurable base URL, headers, and parameters
-- SSL verification toggle
-- Custom timeout settings
-- Automatic retry mechanism for failed requests
-- JSON request/response handling
+- 🔗 Configurable base URL, headers, and parameters
+- 🛡️ SSL verification toggle
+- ⏱️ Custom timeout settings (default: 30 seconds)
+- 🔄 Automatic retry mechanism for 5xx errors
+- 📝 JSON request/response handling
 
 ### Decorators
 
 #### @connect_to
-
-Main decorator for connecting a class to an HTTP integration.
 
 ```python
 @connect_to(
     base_url: str,
     headers: Optional[Dict[str, str]] = None,
     params: Optional[Dict[str, Any]] = None,
-    timeout: int = 30,
+    timeout: int = DEFAULT_TIMEOUT,
     verify_ssl: bool = True
 )
 ```
 
-#### @login
+Main decorator for connecting a class to an HTTP integration.
 
-Handles authentication and token management.
+#### @login
 
 ```python
 @login
-def login_method(self, **kwargs):
+def authenticate(self, **kwargs):
+    """
+    Handle authentication and token management.
+    Returns the authentication response or None if already authenticated.
+    """
     pass
 ```
 
 #### @logout
 
-Manages session termination and token cleanup.
-
 ```python
 @logout
-def logout_method(self, **kwargs):
+def end_session(self, **kwargs):
+    """
+    Manage session termination and token cleanup.
+    Returns the logout response or None if already logged out.
+    """
     pass
 ```
 
 #### @auth
 
-Ensures authentication before method execution.
-
 ```python
 @auth
-def protected_method(self, **kwargs):
+def protected_endpoint(self, **kwargs):
+    """
+    Ensure authentication before method execution.
+    Automatically handles re-authentication if needed.
+    """
     pass
 ```
 
-## Usage
+## 📘 Usage
 
-1. Import required components:
-```python
-from http import HTTPMethod
-from integration import connect_to, Integration
-```
-
-2. Choose your preferred approach:
-   - Use the decorator pattern for class-based implementations
-   - Use the Integration class directly for simpler needs
-
-## Example Implementation
-
-### Using Decorators
-
-Below is a complete example using the JSONPlaceholder API with decorators:
+### Basic Setup
 
 ```python
 from http import HTTPMethod
-from integration import connect_to
-
-@connect_to(
-    base_url="https://jsonplaceholder.typicode.com", 
-    headers={"Content-Type": "application/json"}
-)
-class JSONPlaceholder:
-    def get_posts(self, method=HTTPMethod.GET, endpoint="posts", **data):
-        pass
-
-    def get_post(self, method=HTTPMethod.GET, endpoint="posts/{post_id}", **data):
-        pass
-
-    def get_post_comments(self, method=HTTPMethod.GET, endpoint="posts/{post_id}/comments", **data):
-        pass
-
-    def create_post(self, method=HTTPMethod.POST, endpoint="posts", **data):
-        pass
-
-    def update_post(self, method=HTTPMethod.PUT, endpoint="posts/{post_id}", **data):
-        pass
-
-    def delete_post(self, method=HTTPMethod.DELETE, endpoint="posts/{post_id}", **data):
-        pass
-
-    def get_users(self, method=HTTPMethod.GET, endpoint="users", **data):
-        pass
-
-    def get_user(self, endpoint:str, method=HTTPMethod.GET, **data):
-        pass
-
-    def get_user_posts(self, method=HTTPMethod.GET, endpoint="users/{user_id}/posts", **data):
-        pass
-
-    def get_user_todos(self, method=HTTPMethod.GET, endpoint="users/{user_id}/todos", **data):
-        pass
+from nexilum import Nexilum, connect_to
 ```
 
-Example usage with decorators:
+### Error Handling
 
 ```python
-# Initialize client
-api = JSONPlaceholder()
+from nexilum.exceptions import Nexilum_error
 
-# Get all posts
-posts = api.get_posts()
-
-# Get specific post
-post = api.get_post(endpoint="posts/1")
-
-# Create new post
-new_post = api.create_post(data={
-    "title": "foo",
-    "body": "bar",
-    "userId": 1
-})
-
-# Update post
-updated_post = api.update_post(
-    endpoint="posts/1",
-    data={
-        "id": 1,
-        "title": "foo updated",
-        "body": "bar updated",
-        "userId": 1
-    }
-)
-
-# Delete post
-deleted = api.delete_post(endpoint="posts/1")
-
-# Get users
-users = api.get_users()
-
-# Get specific user
-user = api.get_user(endpoint="users/1")
-```
-
-### Using Integration Class Directly
-
-Here's how to use the Integration class directly with the same JSONPlaceholder API:
-
-```python
-from http import HTTPMethod
-from integration import Integration
-
-# Initialize the Integration instance
-api = Integration(
-    base_url="https://jsonplaceholder.typicode.com",
-    headers={"Content-Type": "application/json"}
-)
-
-# Using the context manager for safe resource handling
-with api as client:
-    # Get all posts
-    posts = client.request(
-        method=HTTPMethod.GET,
-        endpoint="posts"
-    )
-
-    # Get specific post
-    post = client.request(
-        method=HTTPMethod.GET,
-        endpoint="posts/1"
-    )
-
-    # Create new post
-    new_post = client.request(
-        method=HTTPMethod.POST,
-        endpoint="posts",
-        data={
-            "title": "foo",
-            "body": "bar",
-            "userId": 1
-        }
-    )
-
-    # Update post
-    updated_post = client.request(
-        method=HTTPMethod.PUT,
-        endpoint="posts/1",
-        data={
-            "id": 1,
-            "title": "foo updated",
-            "body": "bar updated",
-            "userId": 1
-        }
-    )
-
-    # Delete post
-    deleted = client.request(
-        method=HTTPMethod.DELETE,
-        endpoint="posts/1"
-    )
-
-    # Get users
-    users = client.request(
-        method=HTTPMethod.GET,
-        endpoint="users"
-    )
-
-    # Get specific user
-    user = client.request(
-        method=HTTPMethod.GET,
-        endpoint="users/1"
-    )
-
-# Example with error handling
 try:
-    with Integration(base_url="https://jsonplaceholder.typicode.com") as client:
+    with Nexilum(base_url="https://api.example.com") as client:
         response = client.request(
             method=HTTPMethod.GET,
-            endpoint="nonexistent"
+            endpoint="users"
         )
-except Integration_error as e:
+except Nexilum_error as e:
     print(f"Error occurred: {e}")
 ```
 
-## API Documentation
+## 💻 Example Implementation
 
-### Integration Class Methods
+### Class-Based Implementation
 
-#### `__init__(base_url, headers=None, params=None, timeout=30, verify_ssl=True)`
+```python
+@connect_to(
+    base_url="https://api.example.com",
+    headers={"Content-Type": "application/json"}
+)
+class APIClient:
+    @login
+    def authenticate(self, credentials):
+        pass
 
-Initialize a new Integration instance.
+    @auth
+    def get_resource(self, resource_id):
+        pass
 
-Parameters:
-- `base_url`: Base URL for the API
-- `headers`: Optional dictionary of HTTP headers
-- `params`: Optional dictionary of query parameters
-- `timeout`: Request timeout in seconds
-- `verify_ssl`: Boolean to enable/disable SSL verification
+    @logout
+    def end_session(self):
+        pass
+```
 
-#### `request(method, endpoint, data=None, params=None, retry_count=0)`
+### Direct Usage
 
-Send an HTTP request.
+```python
+with Nexilum(base_url="https://api.example.com") as client:
+    # GET request
+    users = client.request(
+        method=HTTPMethod.GET,
+        endpoint="users",
+        params={"page": 1}
+    )
+
+    # POST request
+    new_user = client.request(
+        method=HTTPMethod.POST,
+        endpoint="users",
+        data={
+            "name": "John Doe",
+            "email": "john@example.com"
+        }
+    )
+```
+
+## 📚 API Documentation
+
+### Nexilum Class
+
+#### Constructor Parameters
+
+| Parameter   | Type    | Required | Default | Description                    |
+|------------|---------|----------|---------|--------------------------------|
+| base_url   | str     | Yes      | -       | Base API URL                   |
+| headers    | Dict    | No       | None    | Default request headers        |
+| params     | Dict    | No       | None    | Default query parameters       |
+| timeout    | int     | No       | 30      | Request timeout in seconds     |
+| verify_ssl | bool    | No       | True    | SSL verification flag          |
+
+#### Methods
+
+##### request()
+
+```python
+def request(
+    self,
+    method: HTTPMethod,
+    endpoint: str,
+    data: Optional[Dict[str, Any]] = None,
+    params: Optional[Dict[str, Any]] = None,
+    retry_count: int = 0
+) -> Optional[Dict[str, Any]]
+```
 
 Parameters:
 - `method`: HTTP method (GET, POST, etc.)
 - `endpoint`: API endpoint
-- `data`: Optional request body
-- `params`: Optional query parameters
-- `retry_count`: Current retry attempt number
-
-Returns:
-- Dictionary containing the JSON response
+- `data`: Request body (optional)
+- `params`: Query parameters (optional)
+- `retry_count`: Current retry attempt (internal use)
 
 ### Error Handling
 
-The library includes a custom `Integration_error` exception class for handling HTTP-related errors. All HTTP errors are wrapped in this exception class with appropriate error messages and status codes.
+The `Nexilum_error` class provides structured error information:
 
-## Best Practices
+```python
+class Nexilum_error(Exception):
+    def __init__(self, message: str, status_code: Optional[int] = None):
+        self.message = message
+        self.status_code = status_code
+        super().__init__(self.message)
+```
 
-1. Always use type hints for better code maintainability
-2. Handle exceptions appropriately in your implementation
-3. Use the context manager when possible
-4. Configure appropriate timeout values for your use case
-5. Consider SSL verification requirements for your environment
+## ⚡ Best Practices
 
-## Contributing
+1. **Use Type Hints**
+   ```python
+   from typing import Dict, Optional
+   ```
 
-Guidelines for contributing to the project would go here.
+2. **Context Managers**
+   ```python
+   with Nexilum(base_url="https://api.example.com") as client:
+       # Your code here
+   ```
 
-## License
+3. **Error Handling**
+   ```python
+   try:
+       response = client.request(...)
+   except Nexilum_error as e:
+       if e.status_code == 404:
+           # Handle not found
+   ```
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+4. **Security**
+   - Enable SSL verification in production
+   - Store sensitive credentials securely
+   - Use environment variables for configuration
+
+5. **Performance**
+   - Configure appropriate timeout values
+   - Handle rate limiting appropriately
+   - Use connection pooling when available
+
+---
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+Made with ❤️ by the Nexilum team.
