@@ -1,4 +1,4 @@
-# HTTP Integration Library Documentation
+# HTTP Nexilum Library Documentation
 
 A Python library for simplifying HTTP integrations with REST APIs, featuring decorators for authentication handling and request management.
 
