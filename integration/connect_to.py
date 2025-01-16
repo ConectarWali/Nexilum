@@ -2,7 +2,7 @@ from functools import wraps
 from http import HTTPMethod
 from inspect import signature
 from typing import Any, Callable, Dict, Optional, Type, TypeVar
-from integration import Integration
+from integration.integration import Integration
 
 
 # Definir un tipo genérico T que representará la clase original

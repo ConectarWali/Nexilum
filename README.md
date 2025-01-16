@@ -9,6 +9,8 @@ A Python library for simplifying HTTP integrations with REST APIs, featuring dec
 - [Components](#components)
 - [Usage](#usage)
 - [Example Implementation](#example-implementation)
+  - [Using Decorators](#using-decorators)
+  - [Using Integration Class Directly](#using-integration-class-directly)
 - [API Documentation](#api-documentation)
 
 ## Features
@@ -91,30 +93,22 @@ def protected_method(self, **kwargs):
 1. Import required components:
 ```python
 from http import HTTPMethod
-from integration import connect_to
+from integration import connect_to, Integration
 ```
 
-2. Create a decorated class:
-```python
-@connect_to(base_url="https://api.example.com", headers={"Content-Type": "application/json"})
-class APIClient:
-    def get_resource(self, method=HTTPMethod.GET, endpoint="resource", **data):
-        pass
-```
-
-3. Initialize and use the client:
-```python
-client = APIClient()
-response = client.get_resource()
-```
+2. Choose your preferred approach:
+   - Use the decorator pattern for class-based implementations
+   - Use the Integration class directly for simpler needs
 
 ## Example Implementation
 
-Below is a complete example using the JSONPlaceholder API:
+### Using Decorators
+
+Below is a complete example using the JSONPlaceholder API with decorators:
 
 ```python
 from http import HTTPMethod
-from utils_cws_web import connect_to
+from integration import connect_to
 
 @connect_to(
     base_url="https://jsonplaceholder.typicode.com", 
@@ -152,7 +146,7 @@ class JSONPlaceholder:
         pass
 ```
 
-Example usage:
+Example usage with decorators:
 
 ```python
 # Initialize client
@@ -190,6 +184,86 @@ users = api.get_users()
 
 # Get specific user
 user = api.get_user(endpoint="users/1")
+```
+
+### Using Integration Class Directly
+
+Here's how to use the Integration class directly with the same JSONPlaceholder API:
+
+```python
+from http import HTTPMethod
+from integration import Integration
+
+# Initialize the Integration instance
+api = Integration(
+    base_url="https://jsonplaceholder.typicode.com",
+    headers={"Content-Type": "application/json"}
+)
+
+# Using the context manager for safe resource handling
+with api as client:
+    # Get all posts
+    posts = client.request(
+        method=HTTPMethod.GET,
+        endpoint="posts"
+    )
+
+    # Get specific post
+    post = client.request(
+        method=HTTPMethod.GET,
+        endpoint="posts/1"
+    )
+
+    # Create new post
+    new_post = client.request(
+        method=HTTPMethod.POST,
+        endpoint="posts",
+        data={
+            "title": "foo",
+            "body": "bar",
+            "userId": 1
+        }
+    )
+
+    # Update post
+    updated_post = client.request(
+        method=HTTPMethod.PUT,
+        endpoint="posts/1",
+        data={
+            "id": 1,
+            "title": "foo updated",
+            "body": "bar updated",
+            "userId": 1
+        }
+    )
+
+    # Delete post
+    deleted = client.request(
+        method=HTTPMethod.DELETE,
+        endpoint="posts/1"
+    )
+
+    # Get users
+    users = client.request(
+        method=HTTPMethod.GET,
+        endpoint="users"
+    )
+
+    # Get specific user
+    user = client.request(
+        method=HTTPMethod.GET,
+        endpoint="users/1"
+    )
+
+# Example with error handling
+try:
+    with Integration(base_url="https://jsonplaceholder.typicode.com") as client:
+        response = client.request(
+            method=HTTPMethod.GET,
+            endpoint="nonexistent"
+        )
+except Integration_error as e:
+    print(f"Error occurred: {e}")
 ```
 
 ## API Documentation
@@ -239,4 +313,4 @@ Guidelines for contributing to the project would go here.
 
 ## License
 
-License information would go here.
+This project is licensed under the MIT License - see the LICENSE file for details.
