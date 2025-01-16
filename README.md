@@ -23,8 +23,7 @@ A Python library for simplifying HTTP integrations with REST APIs, featuring dec
 ## Installation
 
 ```bash
-# Installation instructions will go here
-pip install http-integration-library  # Package name to be determined
+pip install integration
 ```
 
 ## Components
@@ -92,7 +91,7 @@ def protected_method(self, **kwargs):
 1. Import required components:
 ```python
 from http import HTTPMethod
-from utils_cws_web import connect_to
+from integration import connect_to
 ```
 
 2. Create a decorated class:

@@ -65,6 +65,11 @@ def _make_integration_method(method: Callable) -> Callable:
         # Validar que el 'endpoint' esté presente
         if not endpoint:
             raise ValueError(f"No endpoint specified for method {method.__name__}")
+        if not isinstance(endpoint, str):
+            raise ValueError(f"The endpoint specified is not string type for method {method.__name__}")
+        if not isinstance(http_method, HTTPMethod):
+            raise ValueError(f"The http_method specified is not HTTPMethod type for method {method.__name__}")
+
 
         # Añadir el token de autenticación si está disponible
         if self._token:
