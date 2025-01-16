@@ -76,7 +76,7 @@ Main decorator for connecting a class to an HTTP integration.
 
 ```python
 @login
-def authenticate(self, **kwargs):
+def authenticate(self, method=HTTPMethod.POST, endpoint="login", **data):
     """
     Handle authentication and token management.
     Returns the authentication response or None if already authenticated.
@@ -88,7 +88,7 @@ def authenticate(self, **kwargs):
 
 ```python
 @logout
-def end_session(self, **kwargs):
+def end_session(self, method=HTTPMethod.POST, endpoint="end_session", **data):
     """
     Manage session termination and token cleanup.
     Returns the logout response or None if already logged out.
@@ -100,7 +100,7 @@ def end_session(self, **kwargs):
 
 ```python
 @auth
-def protected_endpoint(self, **kwargs):
+def protected_endpoint(self, endpoint="end_session", method=HTTPMethod.GET, **data):
     """
     Ensure authentication before method execution.
     Automatically handles re-authentication if needed.
