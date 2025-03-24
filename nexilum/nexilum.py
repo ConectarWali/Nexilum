@@ -1,12 +1,7 @@
 from http import HTTPMethod
-from urllib.request import Request, urlopen
-from urllib.parse import urlencode
-from urllib.error import HTTPError
-from json import dumps, loads
-from ssl import _create_unverified_context
+import requests
 from logging import getLogger
 from typing import Optional, Dict, Any
-from http.client import HTTPResponse
 
 from exception.nexilum_error import Nexilum_error
 
@@ -29,7 +24,10 @@ class Nexilum:
         self.__timeout = timeout
         self.__verify_ssl = verify_ssl
         self.__logger = getLogger(__name__)
-
+        # Create a session for connection pooling and persistent settings
+        self.__session = requests.Session()
+        self.__session.headers.update(self.__headers)
+        
     def __enter__(self):
         # Allows the use of this class in a context manager (with statement)
         return self
@@ -38,7 +36,19 @@ class Nexilum:
         # Handles exceptions when exiting the context manager and logs errors if necessary.
         if exc_type:
             self.__logger.error(f"Error: {exc_val}")
+        # Close the session when exiting the context manager
+        self.__session.close()
         return False
+    
+    def update_headers(self, headers: Dict[str, str]) -> None:
+        self.__headers.update(headers)
+        self.__session.headers.update(headers)
+    
+    def headers(self) ->  Dict[str, str]: return self.__headers
+    
+    def delete_headers(self) ->  None:  
+        self.__headers.update({})
+        self.__session.headers.update({})
 
     def request(
         self,
@@ -46,50 +56,48 @@ class Nexilum:
         endpoint: str,
         data: Optional[Dict[str, Any]] = None,
         params: Optional[Dict[str, Any]] = None,
-        retry_count: int = 0
+        retry_count: int = 0,
     ) -> Optional[Dict[str, Any]]:
         # Sends an HTTP request to the specified endpoint with the given method and data.
-        url = self._build_url(endpoint, params)
+        url = self._build_url(endpoint)
         
-        headers = {**self.__headers}
-        if data is not None:
-            headers['Content-Type'] = 'application/json'
-            
-        req = Request(
-            url,
-            headers=headers,
-            method=method.value
-        )
-
-        if data is not None:
-            req.data = dumps(data).encode('utf-8')
-
-        try:
-            # Creates an SSL context if SSL verification is disabled
-            context = None if self.__verify_ssl else _create_unverified_context()
-            with urlopen(req, timeout=self.__timeout, context=context) as response:
-                return self._handle_response(response)
-                
-        except HTTPError as e:
-            # Retries the request if it's a server error (5xx) and retry count is less than MAX_RETRIES
-            if retry_count < self.MAX_RETRIES and 500 <= e.code < 600:
-                return self.request(method, endpoint, data, params, retry_count + 1)
-            raise Nexilum_error(f"HTTP Error: {e.code} {e.reason}", e.code)
-
-    def _build_url(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> str:
-        # Constructs the full URL by appending the endpoint and URL-encoded parameters
+        # Combine default params with request-specific params
         all_params = {**self.__params, **(params or {})}
-        url = f"{self.__base_url}/{endpoint.lstrip('/')}"
-        if all_params:
-            url = f"{url}?{urlencode(all_params)}"
-        return url
+        
+        try:
+            # Use requests library instead of urllib
+            response = self.__session.request(
+                method=method.value,
+                url=url,
+                json=data,  # Use json parameter for automatic JSON encoding
+                params=all_params,
+                timeout=self.__timeout,
+                verify=self.__verify_ssl
+            )
+            
+            # Raise HTTP errors
+            response.raise_for_status()
+            
+            # Return the JSON response
+            return response.json()
+                
+        except requests.exceptions.HTTPError as e:
+            # Retries the request if it's a server error (5xx) and retry count is less than MAX_RETRIES
+            if retry_count < self.MAX_RETRIES and 500 <= e.response.status_code < 600:
+                self.__logger.warning(f"Retrying request due to server error: {e}")
+                return self.request(method, endpoint, data, params, retry_count + 1)
+            
+            error_msg = f"{e.response.status_code} {e.response.reason}"
+            self.__logger.error(error_msg)
+            self.__logger.error(f"Response content: {e.response.text}")
+            raise Nexilum_error(error_msg, e.response.status_code)
+            
+        except requests.exceptions.RequestException as e:
+            # Handle other request exceptions
+            error_msg = f"Request failed: {str(e)}"
+            self.__logger.error(error_msg)
+            raise Nexilum_error(error_msg)
 
-    def _handle_response(self, response: HTTPResponse) -> Dict[str, Any]:
-        # Reads and handles the HTTP response, raising an error if the response is empty
-        content = response.read()
-        if not content:
-            raise Nexilum_error("Empty response")
-        return loads(content.decode('utf-8'))
-
-    def add_header(self, key: str, value: str) -> None:
-        self.__headers[key] = value
+    def _build_url(self, endpoint: str) -> str:
+        # Constructs the full URL by appending the endpoint
+        return f"{self.__base_url}/{endpoint.lstrip('/')}"
