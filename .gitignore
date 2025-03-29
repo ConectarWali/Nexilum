@@ -1,0 +1,25 @@
+# Carpetas de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+.env/
+
+# Archivos de compilación
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Archivos de configuración del IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Dependencias descargadas
+pip-wheel-metadata/
