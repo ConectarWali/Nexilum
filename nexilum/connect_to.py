@@ -92,12 +92,6 @@ def _make_integration_method(method: Callable) -> Callable:
         if hasattr(self, '_token') and self._token:
             self._integration.update_headers({'Authorization': f"Bearer {self._token}"})
 
-        if endpoint.endswith('/'):
-            endpoint = f"{endpoint}{value}"
-        else:
-            endpoint = f"{endpoint}/{value}"
-
-
         # Realizar la solicitud HTTP y retornar la respuesta
         response = self._integration.request(
             method=http_method,  # Usar el valor de la enumeración
