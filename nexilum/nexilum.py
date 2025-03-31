@@ -3,7 +3,7 @@ import requests
 from logging import getLogger
 from typing import Optional, Dict, Any
 
-from exception.nexilum_error import Nexilum_error
+from exception_nexilum.nexilum_error import Nexilum_error
 
 class Nexilum:
     DEFAULT_TIMEOUT = 30  # Default timeout for requests (in seconds)

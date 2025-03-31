@@ -1,7 +1,7 @@
 import unittest
 from http import HTTPMethod
 from nexilum.nexilum import Nexilum
-from exception.nexilum_error import Nexilum_error
+from exception_nexilum.nexilum_error import Nexilum_error
 
 class TestNexilum(unittest.TestCase):
     def setUp(self):
