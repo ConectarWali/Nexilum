@@ -1,5 +1,5 @@
 from http import HTTPMethod
-import requests
+from requests import RequestException, Session, HTTPError
 from logging import getLogger
 from typing import Optional, Dict, Any
 
@@ -25,7 +25,7 @@ class Nexilum:
         self.__verify_ssl = verify_ssl
         self.__logger = getLogger(__name__)
         # Create a session for connection pooling and persistent settings
-        self.__session = requests.Session()
+        self.__session = Session()
         self.__session.headers.update(self.__headers)
         
     def __enter__(self):
@@ -39,6 +39,12 @@ class Nexilum:
         # Close the session when exiting the context manager
         self.__session.close()
         return False
+    
+    @property
+    def base_url(self) -> str: return self.__base_url
+
+    @base_url.setter
+    def base_url(self, value: str) -> None: self.__base = value
     
     def update_headers(self, headers: Dict[str, str]) -> None:
         self.__headers.update(headers)
@@ -81,7 +87,7 @@ class Nexilum:
             # Return the JSON response
             return response.json()
                 
-        except requests.exceptions.HTTPError as e:
+        except HTTPError as e:
             # Retries the request if it's a server error (5xx) and retry count is less than MAX_RETRIES
             if retry_count < self.MAX_RETRIES and 500 <= e.response.status_code < 600:
                 self.__logger.warning(f"Retrying request due to server error: {e}")
@@ -92,12 +98,11 @@ class Nexilum:
             self.__logger.error(f"Response content: {e.response.text}")
             raise Nexilum_error(error_msg, e.response.status_code)
             
-        except requests.exceptions.RequestException as e:
+        except RequestException as e:
             # Handle other request exceptions
             error_msg = f"Request failed: {str(e)}"
             self.__logger.error(error_msg)
             raise Nexilum_error(error_msg)
 
     def _build_url(self, endpoint: str) -> str:
-        # Constructs the full URL by appending the endpoint
         return f"{self.__base_url}/{endpoint.lstrip('/')}"

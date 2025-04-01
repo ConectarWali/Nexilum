@@ -1,7 +1,8 @@
 from functools import wraps
 from http import HTTPMethod
 from inspect import signature
-from typing import Callable, Dict, Optional, Type, TypeVar
+from urllib.parse import urljoin
+from typing import Callable, Dict, List, Optional, Type, TypeVar
 from nexilum.nexilum import Nexilum
 
 
@@ -27,7 +28,7 @@ def connect_to(base_url: str,
         @wraps(original_init)
         def new_init(self: T, *args, **kwargs):
             # Configurar integración en la instancia
-            self._integration:Nexilum = Nexilum(base_url=base_url, headers=headers, params=params, timeout=timeout, verify_ssl=verify_ssl)
+            self._integration = Nexilum(base_url=base_url, headers=headers, params=params, timeout=timeout, verify_ssl=verify_ssl)
             self._token = token if token else None
             self._is_logged_in = False
             self._login_method = getattr(self, "login", None)
@@ -52,39 +53,56 @@ def connect_to(base_url: str,
 
 
 def _make_integration_method(method: Callable) -> Callable:
-    """
-    Transforma un método para que use la integración HTTP, sin lógica en el método de la clase.
-    """
+    """Transforma un método para que use la integración HTTP, sin lógica en el método de la clase."""
+    
     @wraps(method)
     def wrapper(self, *args, **kwargs):
         method_signature = signature(method)
         parameters = method_signature.parameters
 
-        http_method = kwargs.pop("method", parameters.get("method", {}).default)
-        value = kwargs.pop("value", parameters.get("value").default if parameters.get("value") else '')
-        endpoint = kwargs.pop("endpoint", parameters.get("endpoint").default if parameters.get("endpoint") else None)
-        params = kwargs.pop("params", parameters.get("params").default if parameters.get("params") else {})
-        headers = kwargs.pop("headers", parameters.get("headers").default if parameters.get("headers") else {})
-        no_headers = kwargs.pop("no_headers", parameters.get("no_headers").default if parameters.get("no_headers") else [])
-        custom_headers = kwargs.pop("custom_headers", parameters.get("custom_headers").default if parameters.get("custom_headers") else {})
+        # Extraer argumentos con valores por defecto
+        def get_arg(name, default=""):
+            return kwargs.pop(name, parameters.get(name, {}).default if name in parameters else default)
+
+        http_method: HTTPMethod = get_arg("method", HTTPMethod.GET)
+        value: str = get_arg("value")
+        subdomain: str = get_arg("subdomain")
+        prefix: str = get_arg("prefix")
+        endpoint: str = get_arg("endpoint", None)
+        params: Dict[str, str] = get_arg("params", {})
+        headers: Dict[str, str] = get_arg("headers", {})
+        no_headers: List[str] = get_arg("no_headers", [])
+        custom_headers: Dict[str, str] = get_arg("custom_headers", {})
         data = kwargs.pop("data", None)
 
-        # Validar que el 'endpoint' esté presente
-        if not endpoint:
-            raise ValueError(f"No se especificó un endpoint para el método {method.__name__}")
-        if not isinstance(endpoint, str):
-            raise ValueError(f"El endpoint especificado no es de tipo cadena para el método {method.__name__}")
+        # Validaciones
+        if not endpoint or not isinstance(endpoint, str):
+            raise ValueError(f"Invalid endpoint: {endpoint}")
         if not isinstance(http_method, HTTPMethod):
-            raise ValueError(f"El http_method especificado no es de tipo HTTPMethod para el método {method.__name__}")
+            raise TypeError("http_method must be an instance of HTTPMethod")
+        
+        valid_types = {"params": dict, "headers": dict, "no_headers": list, "custom_headers": dict}
+        for var, expected_type in valid_types.items():
+            if not isinstance(locals()[var], expected_type):
+                raise TypeError(f"Expected {var} to be {expected_type}, got {type(locals()[var])}")
 
+        if data is not None and not isinstance(data, dict):
+            raise TypeError("data must be a dict or None")
+
+        # Construcción del URL base
+        base_url = self._integration.base_url
+        if subdomain:
+            base_url = f"{subdomain}.{base_url}"
+        if prefix:
+            base_url = f"{base_url}/{prefix}"
+        self._integration.base_url = base_url
+
+        # Manejo de headers
         if headers:
             self._integration.update_headers(headers)
         if no_headers:
-            current_headers = self._integration.headers()
-            for header in no_headers:
-                if header in current_headers:
-                    current_headers.pop(header)
             self._integration.delete_headers()
+            current_headers = {k: v for k, v in self._integration.headers().items() if k not in no_headers}
             self._integration.update_headers(current_headers)
         if custom_headers:
             self._integration.delete_headers()
@@ -92,13 +110,23 @@ def _make_integration_method(method: Callable) -> Callable:
         if hasattr(self, '_token') and self._token:
             self._integration.update_headers({'Authorization': f"Bearer {self._token}"})
 
-        # Realizar la solicitud HTTP y retornar la respuesta
+        # Construcción del endpoint final
+        if http_method == HTTPMethod.POST:
+            endpoint = urljoin(endpoint, value)
+        if params:
+            query_string = "&".join(f"{k}={v}" for k, v in params.items())
+            endpoint = f"{endpoint}?{query_string}"
+
+        # Realizar la solicitud HTTP
         response = self._integration.request(
-            method=http_method,  # Usar el valor de la enumeración
+            method=http_method,
             endpoint=endpoint,
             data=data,
             params=params
         )
+
+        # Restaurar URL base original
+        self._integration.base_url = base_url
         return response
 
     return wrapper
