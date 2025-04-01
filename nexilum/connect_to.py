@@ -79,7 +79,7 @@ def _make_integration_method(method: Callable) -> Callable:
         if not endpoint or not isinstance(endpoint, str):
             raise ValueError(f"Invalid endpoint: {endpoint}\nMethod: {method.__name__}")
         if not isinstance(http_method, HTTPMethod):
-            raise TypeError("http_method must be an instance of HTTPMethod\nMethod: {method.__name__}")
+            raise TypeError(f"http_method must be an instance of HTTPMethod\nMethod: {method.__name__}")
         
         valid_types = {"params": dict, "headers": dict, "no_headers": list, "custom_headers": dict}
         for var, expected_type in valid_types.items():
