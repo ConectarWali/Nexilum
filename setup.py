@@ -6,7 +6,7 @@ def load_requirements(filename):
 
 setup(
     name='Nexilum',
-    version='0.0.3',
+    version='0.0.4',
     description='A Python library for simplifying HTTP integrations with REST APIs, featuring decorators for authentication handling and request management.',
     long_description=open('README.md', encoding="utf-8").read(),
     long_description_content_type='text/markdown',
