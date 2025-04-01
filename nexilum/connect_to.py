@@ -77,24 +77,34 @@ def _make_integration_method(method: Callable) -> Callable:
 
         # Validaciones
         if not endpoint or not isinstance(endpoint, str):
-            raise ValueError(f"Invalid endpoint: {endpoint}")
+            raise ValueError(f"Invalid endpoint: {endpoint}\nMethod: {method.__name__}")
         if not isinstance(http_method, HTTPMethod):
-            raise TypeError("http_method must be an instance of HTTPMethod")
+            raise TypeError("http_method must be an instance of HTTPMethod\nMethod: {method.__name__}")
         
         valid_types = {"params": dict, "headers": dict, "no_headers": list, "custom_headers": dict}
         for var, expected_type in valid_types.items():
             if not isinstance(locals()[var], expected_type):
-                raise TypeError(f"Expected {var} to be {expected_type}, got {type(locals()[var])}")
+                raise TypeError(f"Expected {var} to be {expected_type}, got {type(locals()[var])}\nMethod: {method.__name__}")
 
         if data is not None and not isinstance(data, dict):
             raise TypeError("data must be a dict or None")
 
         # Construcción del URL base
-        base_url = self._integration.base_url
+        original_url = self._integration.base_url
+        base_url = original_url
+        protocol = ''
         if subdomain:
+            if base_url.startswith('http://'):
+                base_url = base_url[7:]
+                protocol = 'http://'
+            else:
+                base_url = base_url[8:]
+                protocol = 'https://'
             base_url = f"{subdomain}.{base_url}"
         if prefix:
             base_url = f"{base_url}/{prefix}"
+            base_url = f"{protocol}{base_url}"
+            
         self._integration.base_url = base_url
 
         # Manejo de headers
@@ -126,7 +136,7 @@ def _make_integration_method(method: Callable) -> Callable:
         )
 
         # Restaurar URL base original
-        self._integration.base_url = base_url
+        self._integration.base_url = original_url
         return response
 
     return wrapper

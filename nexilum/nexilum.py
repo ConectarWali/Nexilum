@@ -44,7 +44,7 @@ class Nexilum:
     def base_url(self) -> str: return self.__base_url
 
     @base_url.setter
-    def base_url(self, value: str) -> None: self.__base = value
+    def base_url(self, value: str) -> None: self.__base_url = value
     
     def update_headers(self, headers: Dict[str, str]) -> None:
         self.__headers.update(headers)
